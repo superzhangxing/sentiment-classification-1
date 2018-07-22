@@ -44,10 +44,8 @@ class Dataset(object):
         _logger.add()
         _logger.add('load file for %s' % data_type)
         dataset = []
-        with open(data_file_path, 'r', encoding = 'utf-8') as file:
-            for line in file:
-                json_obj = json.loads(line)
-                dataset.append(json_obj)
+        with open(data_file_path, 'r', encoding='utf-8') as f:
+            dataset = json.load(f)
         _logger.done()
         return dataset
 
@@ -77,10 +75,10 @@ class Dataset(object):
         token_len_collection = []
 
         for sample in data_list:
-            token_collection += sample['sentence']
-            sent_len_collection += [len(sample['sentence'])]
+            token_collection += sample['sentence_token']
+            sent_len_collection += [len(sample['sentence_token'])]
 
-            for token in sample['sentence']:
+            for token in sample['sentence_token']:
                 char_collection += list(token)
                 token_len_collection.append(len(token))
 

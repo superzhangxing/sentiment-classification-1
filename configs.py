@@ -43,7 +43,7 @@ class Configs(object):
         parser.add_argument('--hidden_units_num', type=int, default=300, help='Hidden units number of Neural Network')
 
         # @ ------task-----
-        parser.add_argument('--output_class', type=int, default=2, help='output class')
+        parser.add_argument('--output_class', type=int, default=5, help='output class')
 
         parser.set_defaults(shuffle=True)
         self.args = parser.parse_args()
@@ -54,6 +54,13 @@ class Configs(object):
                 exec('self.%s = self.args.%s' % (key, key))
 
         # ------- name --------
+        self.train_data_name = 'train.json'
+        self.dev_data_name = 'dev.json'
+        self.test_data_name = 'test.json'
+        self.infer_train_data_name = 'train'
+        self.infer_dev_data_name = 'dev'
+        self.infer_test_data_name = 'test'
+
         self.processed_name = 'processed' + self.get_params_str(['lower_word', 'use_glove_unk_token',
                                                                  'glove_corpus', 'word_embedding_length']) + '.pickle'
         self.dict_name = 'dicts' + self.get_params_str(['lower_word', 'use_glove_unk_token',
@@ -71,6 +78,7 @@ class Configs(object):
         self.standby_log_dir = self.mkdir(self.result_dir, 'log')
         self.dict_dir = self.mkdir(self.result_dir, 'dict')
         self.processed_dir = self.mkdir(self.result_dir, 'processed_data')
+        self.infer_dir = self.mkdir(self.result_dir, 'infer')
 
         self.log_dir = None
         self.all_model_dir = self.mkdir(self.result_dir, 'model')
@@ -80,6 +88,13 @@ class Configs(object):
         self.ckpt_dir = self.mkdir(self.model_dir, 'ckpt')
 
         # -------- path --------
+        self.train_data_path = join(self.data_dir, self.train_data_name)
+        self.dev_data_path = join(self.data_dir, self.dev_data_name)
+        self.test_data_path = join(self.data_dir, self.test_data_name)
+        self.infer_train_data_path = join(self.infer_dir, self.infer_train_data_name)
+        self.infer_dev_data_path = join(self.infer_dir, self.infer_dev_data_name)
+        self.infer_test_data_path = join(self.infer_dir, self.infer_test_data_name)
+
         self.processed_path = join(self.processed_dir, self.processed_name)
         self.dict_path = join(self.dict_dir, self.dict_name)
         self.ckpt_path = join(self.ckpt_dir, self.model_ckpt_name)

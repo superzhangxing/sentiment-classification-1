@@ -147,9 +147,9 @@ class SSTPreprocess():
         save_file(dev_samples, pjoin(self.data_dir, 'dev.json'), mode = 'json')
         save_file(test_samples, pjoin(self.data_dir, 'test.json'), mode = 'json')
 
-# sst_preprocess = SSTPreprocess(data_dir='/home/cike/zhangxing/Code/sentiment-classification-1/dataset/sst',
-#                                label_class=5)
-# samples = sst_preprocess.samples
+sst_preprocess = SSTPreprocess(data_dir='/home/cike/zhangxing/Code/sentiment-classification-1/dataset/sst',
+                            label_class=5)
+samples = sst_preprocess.samples
 # print('done')
 
 
