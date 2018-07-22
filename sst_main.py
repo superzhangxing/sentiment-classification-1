@@ -1,7 +1,5 @@
 import math
-
 import tensorflow as tf
-
 from configs import cfg
 from src.dataset.dataset import Dataset
 from src.evaluator import Evaluator
@@ -13,12 +11,11 @@ from src.utils.record_log import _logger
 
 # choose model
 network_type = cfg.network_type
-if network_type == 'exp_emb_dir_mul_attn':
-    from src.model.exp_emb_dir_mul_attn import ModelExpEmbDirMulAttn as Model
-if network_type == 'disan':
-    from src.model.model_disan import ModelDiSAN as Model
+if network_type == 'cnn':
+    from src.model.model_cnn import ModelCNN as Model
 
-model_set = ['exp_emb_dir_mul_attn', 'disan']
+
+model_set = ['cnn']
 
 
 def train():
@@ -28,14 +25,9 @@ def train():
     if loadFile:
         ifLoad, data = load_file(cfg.processed_path, 'processed data', 'pickle')
     if not ifLoad or not loadFile:
-        raw_data = RawDataProcessor(cfg.data_dir)
-        train_data_list = raw_data.get_data_list('train')
-        dev_data_list = raw_data.get_data_list('dev')
-        test_data_list = raw_data.get_data_list('test')
-
-        train_data_obj = Dataset(train_data_list, 'train')
-        dev_data_obj = Dataset(dev_data_list, 'dev', train_data_obj.dicts)
-        test_data_obj = Dataset(test_data_list, 'test', train_data_obj.dicts)
+        train_data_obj = Dataset(cfg.train_data_path, 'train')
+        dev_data_obj = Dataset(cfg.dev_data_path, 'dev', train_data_obj.dicts)
+        test_data_obj = Dataset(cfg.test_data_path, 'test', train_data_obj.dicts)
 
         save_file({'train_data_obj': train_data_obj, 'dev_data_obj': dev_data_obj, 'test_data_obj': test_data_obj},
                   cfg.processed_path)
@@ -44,10 +36,6 @@ def train():
         train_data_obj = data['train_data_obj']
         dev_data_obj = data['dev_data_obj']
         test_data_obj = data['test_data_obj']
-
-    train_data_obj.filter_data(cfg.only_sentence, cfg.fine_grained)
-    dev_data_obj.filter_data(True, cfg.fine_grained)
-    test_data_obj.filter_data(True, cfg.fine_grained)
 
     emb_mat_token, emb_mat_glove = train_data_obj.emb_mat_token, train_data_obj.emb_mat_glove
 
@@ -58,7 +46,7 @@ def train():
 
     graphHandler = GraphHandler(model)
     evaluator = Evaluator(model)
-    performRecoder = PerformRecoder(3)
+    performRecoder = PerformRecoder(5)
 
     if cfg.gpu_mem < 1.:
         gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=cfg.gpu_mem,
@@ -71,7 +59,7 @@ def train():
 
     # begin training
     steps_per_epoch = int(math.ceil(1.0 * train_data_obj.sample_num / cfg.train_batch_size))
-    num_steps = cfg.num_steps or steps_per_epoch * cfg.max_epoch
+    num_steps = steps_per_epoch * cfg.max_epoch or cfg.num_steps
 
     global_step = 0
     for sample_batch, batch_num, data_round, idx_b in train_data_obj.generate_batch_sample_iter(num_steps):
@@ -89,27 +77,22 @@ def train():
         # Occasional evaluation
         if global_step % (cfg.eval_period or steps_per_epoch) == 0:
             # ---- dev ----
-            dev_loss, dev_accu, dev_sent_accu = evaluator.get_evaluation(
+            dev_loss, dev_accu = evaluator.get_evaluation(
                 sess, dev_data_obj, global_step
             )
-            _logger.add('==> for dev, loss: %.4f, accuracy: %.4f, sentence accuracy: %.4f' %
-                        (dev_loss, dev_accu, dev_sent_accu))
+            _logger.add('==> for dev, loss: %.4f, accuracy: %.4f' %
+                        (dev_loss, dev_accu))
             # ---- test ----
-            test_loss, test_accu, test_sent_accu = evaluator.get_evaluation(
+            test_loss, test_accu = evaluator.get_evaluation(
                 sess, test_data_obj, global_step
             )
-            _logger.add('~~> for test, loss: %.4f, accuracy: %.4f, sentence accuracy: %.4f' %
-                        (test_loss, test_accu, test_sent_accu))
+            _logger.add('~~> for test, loss: %.4f, accuracy: %.4f' %
+                        (test_loss, test_accu))
 
             is_in_top, deleted_step = performRecoder.update_top_list(global_step, dev_accu, sess)
-            if is_in_top and global_step > 30000:  # todo-ed: delete me to run normally
-                # evaluator.get_evaluation_file_output(sess, dev_data_obj, global_step, deleted_step)
-                evaluator.get_evaluation_file_output(sess, test_data_obj, global_step, deleted_step)
         this_epoch_time, mean_epoch_time = cfg.time_counter.update_data_round(data_round)
         if this_epoch_time is not None and mean_epoch_time is not None:
             _logger.add('##> this epoch time: %f, mean epoch time: %f' % (this_epoch_time, mean_epoch_time))
-
-    do_analyse_sst(_logger.path)
 
 
 def test():
@@ -119,14 +102,9 @@ def test():
     if loadFile:
         ifLoad, data = load_file(cfg.processed_path, 'processed data', 'pickle')
     if not ifLoad or not loadFile:
-        raw_data = RawDataProcessor(cfg.data_dir)
-        train_data_list = raw_data.get_data_list('train')
-        dev_data_list = raw_data.get_data_list('dev')
-        test_data_list = raw_data.get_data_list('test')
-
-        train_data_obj = Dataset(train_data_list, 'train')
-        dev_data_obj = Dataset(dev_data_list, 'dev', train_data_obj.dicts)
-        test_data_obj = Dataset(test_data_list, 'test', train_data_obj.dicts)
+        train_data_obj = Dataset(cfg.train_data_path, 'train')
+        dev_data_obj = Dataset(cfg.dev_data_path, 'dev', train_data_obj.dicts)
+        test_data_obj = Dataset(cfg.test_data_path, 'test', train_data_obj.dicts)
 
         save_file({'train_data_obj': train_data_obj, 'dev_data_obj': dev_data_obj, 'test_data_obj': test_data_obj},
                   cfg.processed_path)
@@ -135,10 +113,6 @@ def test():
         train_data_obj = data['train_data_obj']
         dev_data_obj = data['dev_data_obj']
         test_data_obj = data['test_data_obj']
-
-    train_data_obj.filter_data(True, cfg.fine_grained)
-    dev_data_obj.filter_data(True, cfg.fine_grained)
-    test_data_obj.filter_data(True, cfg.fine_grained)
 
     emb_mat_token, emb_mat_glove = train_data_obj.emb_mat_token, train_data_obj.emb_mat_glove
 
@@ -161,24 +135,24 @@ def test():
     graphHandler.initialize(sess)
 
     # ---- dev ----
-    dev_loss, dev_accu, dev_sent_accu = evaluator.get_evaluation(
+    dev_loss, dev_accu = evaluator.get_evaluation(
         sess, dev_data_obj, 1
     )
-    _logger.add('==> for dev, loss: %.4f, accuracy: %.4f, sentence accuracy: %.4f' %
-                (dev_loss, dev_accu, dev_sent_accu))
+    _logger.add('==> for dev, loss: %.4f, accuracy: %.4f' %
+                (dev_loss, dev_accu))
     # ---- test ----
-    test_loss, test_accu, test_sent_accu = evaluator.get_evaluation(
+    test_loss, test_accu = evaluator.get_evaluation(
         sess, test_data_obj, 1
     )
-    _logger.add('~~> for test, loss: %.4f, accuracy: %.4f, sentence accuracy: %.4f' %
-                (test_loss, test_accu, test_sent_accu))
+    _logger.add('~~> for test, loss: %.4f, accuracy: %.4f' %
+                (test_loss, test_accu))
 
     # ---- train ----
     train_loss, train_accu, train_sent_accu = evaluator.get_evaluation(
         sess, train_data_obj, 1
     )
-    _logger.add('--> for test, loss: %.4f, accuracy: %.4f, sentence accuracy: %.4f' %
-                (train_loss, train_accu, train_sent_accu))
+    _logger.add('--> for test, loss: %.4f, accuracy: %.4f' %
+                (train_loss, train_accu))
 
 
 

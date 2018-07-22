@@ -2,6 +2,7 @@ from configs import cfg
 from src.utils.record_log import _logger
 from src.utils.file import load_glove
 from tqdm import tqdm
+from src.utils.file import save_file
 import random
 import math
 import json
@@ -35,6 +36,9 @@ class Dataset(object):
         if data_type == 'train':
             self.emb_mat_token, self.emb_mat_glove = self.generate_index2vec_matrix()
 
+
+    def save_dict(self, path):
+        save_file(self.dicts, path,'token and char dict data', 'pickle')
 
     def load_data(self, data_file_path, data_type):
         _logger.add()

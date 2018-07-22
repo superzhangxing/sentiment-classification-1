@@ -54,6 +54,7 @@ class Evaluator(object):
                 }
                 summary = sess.run(self.test_summaries, summary_feed_dict)
                 self.writer.add_summary(summary, global_step)
+        return loss_value, accu_value
 
     # --- internal use ------
     def build_summary(self):
