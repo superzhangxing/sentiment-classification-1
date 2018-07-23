@@ -23,6 +23,7 @@ class Configs(object):
         parser.add_argument('--gpu_mem', type=float, default=0.96, help='gpu memory ratio to employ')
         parser.add_argument('--model_dir_suffix', type=str, default='', help='model folder name suffix')
         parser.add_argument('--load_path', type=str, default=None, help='specify which pre-trianed model to be load')
+        parser.add_argument('--load_model', type=str, default=False, help='load pretrained model')
 
         # @ ----------training ------
         parser.add_argument('--max_epoch', type=int, default=200, help='max epoch number')
@@ -34,9 +35,15 @@ class Configs(object):
 
         # @ ----- Text Processing ----
         parser.add_argument('--word_embedding_length', type=int, default=300, help='word embedding length')
+        parser.add_argument('--char_embedding_length', type=int, default=300, help='char embedding length')
+        parser.add_argument('--char_out_size', type=int, default=20, help='char out size')
         parser.add_argument('--glove_corpus', type=str, default='6B', help='choose glove corpus to employ')
         parser.add_argument('--use_glove_unk_token', type='bool', default=True, help='')
         parser.add_argument('--lower_word', type='bool', default=True, help='')
+        parser.add_argument('--out_channel_dims', type=str, default='50,50,50', help='out channel dims')
+        parser.add_argument('--filter_heights', type=str, default='1,3,5', help='filter heights')
+        parser.add_argument('--fine_tune', type='bool', default=False, help='fine tune extra embedding mat')
+
 
         # @ ------neural network-----
         parser.add_argument('--dropout', type=float, default=0.7, help='dropout keep prob')

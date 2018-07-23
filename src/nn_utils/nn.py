@@ -34,7 +34,4 @@ def linear(args, output_size, bias, bias_start=0.0, scope=None, squeeze=False, w
     if squeeze:
         out = tf.squeeze(out, [len(args[0].get_shape().as_list())-1])
 
-    if wd:
-        add_reg_without_bias()
-
     return out

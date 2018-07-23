@@ -15,7 +15,7 @@ class ModelTemplate(metaclass=ABCMeta):
         self.token_seq = tf.placeholder(tf.int32, [None, None], name='token_seq')
         self.char_seq = tf.placeholder(tf.int32, [None, None, tl], name='context_char')
 
-        self.sentiment_label = tf.placeholder(tf.int32, [None], name='sentiment_label') # bs
+        self.gold_label = tf.placeholder(tf.int32, [None], name='gold_label') # bs
         self.is_train = tf.placeholder(tf.bool, [], name='is_train')
 
 
@@ -62,8 +62,8 @@ class ModelTemplate(metaclass=ABCMeta):
 
         # compute loss
         losses = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels = self.sentiment_label,
-            logits = self.logits
+            labels=self.gold_label,
+            logits=self.logits
         )
         tf.add_to_collection('losses', tf.reduce_mean(losses, name='xentropy_loss_mean'))
         loss = tf.add_n(tf.get_collection('losses', self.scope), name='loss')
@@ -73,17 +73,18 @@ class ModelTemplate(metaclass=ABCMeta):
     def build_accuracy(self):
         correct = tf.equal(
             tf.cast(tf.argmax(self.logits, -1), tf.int32),
-            self.sentiment_label
+            self.gold_label
         ) # [bs]
         return tf.cast(correct, tf.float32)
 
     def update_tensor_add_ema_and_opt(self):
-        self.logtis = self.build_network()
+        self.logits = self.build_network()
         self.loss = self.build_loss()
         self.accuracy = self.build_accuracy()
 
         # ---------- ema ----------
 
+        self.summary = tf.summary.merge_all()
         # ---------- optimization ----------
         if cfg.optimizer.lower() == 'adadelta':
             # assert cfg.learning_rate > 0.1 and cfg.learning_rate < 1.
@@ -96,6 +97,16 @@ class ModelTemplate(metaclass=ABCMeta):
             self.opt = tf.train.RMSPropOptimizer(cfg.learning_rate)
         else:
             raise AttributeError('no optimizer named as \'%s\'' % cfg.optimizer)
+
+        trainable_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope)
+        all_params_num = 0
+        for elem in trainable_vars:
+            var_name = elem.name.split(':')[0]
+            if var_name.endswith('emb_mat'): continue
+            params_num = 1
+            for l in elem.get_shape().as_list(): params_num *= l
+            all_params_num += params_num
+        _logger.add('Trainable Parameters Number: %d' % all_params_num)
 
         self.train_op = self.opt.minimize(self.loss, self.global_step,
                                           var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope))
@@ -135,7 +146,7 @@ class ModelTemplate(metaclass=ABCMeta):
 
         feed_dict = {
             self.token_seq: token_seq_b, self.char_seq:char_seq_b,
-            self.sentiment_label: gold_label_b,
+            self.gold_label: gold_label_b,
             self.is_train: True if data_type == 'train' else False
         }
         return feed_dict

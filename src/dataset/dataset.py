@@ -134,7 +134,7 @@ class Dataset(object):
         _logger.add()
         _logger.add('digitizing data: %s...' % data_type)
         for sample in tqdm(data_list):
-            sample['sentence_token_digitial'] = [digitize_token(token) for token in sample['sentence_token']]
+            sample['sentence_token_digital'] = [digitize_token(token) for token in sample['sentence_token']]
             sample['sentence_char_digital'] = [[digitize_char(char) for char in list(token)]
                                                for token in sample['sentence_token']]
 
@@ -171,3 +171,48 @@ class Dataset(object):
         _logger.add('Done')
         return mat_token, mat_glove
 
+    def generate_batch_sample_iter(self, max_step=None):
+        if max_step is not None:
+            batch_size = cfg.train_batch_size
+
+            def data_queue(data, batch_size):
+                assert len(data) >= batch_size
+                random.shuffle(data)
+                data_ptr = 0
+                dataRound = 0
+                idx_b = 0
+                step = 0
+                while True:
+                    if data_ptr + batch_size <= len(data):
+                        yield data[data_ptr:data_ptr + batch_size], dataRound, idx_b
+                        data_ptr += batch_size
+                        idx_b += 1
+                        step += 1
+                    elif data_ptr + batch_size > len(data):
+                        offset = data_ptr + batch_size - len(data)
+                        out = data[data_ptr:]
+                        random.shuffle(data)
+                        out += data[:offset]
+                        data_ptr = offset
+                        dataRound += 1
+                        yield out, dataRound, 0
+                        idx_b = 1
+                        step += 1
+                    if step >= max_step:
+                        break
+            batch_num = math.ceil(len(self.nn_data) / batch_size)
+            for sample_batch, data_round, idx_b in data_queue(self.nn_data, batch_size):
+                yield sample_batch, batch_num, data_round, idx_b
+        else:
+            batch_size = cfg.test_batch_size
+            batch_num = math.ceil(len(self.nn_data) / batch_size)
+            idx_b = 0
+            sample_batch = []
+            for sample in self.nn_data:
+                sample_batch.append(sample)
+                if len(sample_batch) == batch_size:
+                    yield sample_batch, batch_num, 0, idx_b
+                    idx_b += 1
+                    sample_batch = []
+            if len(sample_batch) > 0:
+                yield sample_batch, batch_num, 0, idx_b

@@ -29,7 +29,7 @@ class ModelCNN(ModelTemplate):
             self.tensor_dict['emb'] = emb
 
         with tf.variable_scope('cnn'):
-            sent_rep = cnn_Kim(self.token_seq, filter_size=3, scope='cnn_Kim', keep_prob=cfg.dropout,
+            sent_rep = cnn_Kim(emb, filter_size=3, scope='cnn_Kim', keep_prob=cfg.dropout,
                                is_train=self.is_train,activation='relu', tensor_dict=self.tensor_dict, name='')
             self.tensor_dict['sent_rep'] = sent_rep
 
