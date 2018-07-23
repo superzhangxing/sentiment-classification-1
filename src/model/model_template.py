@@ -57,6 +57,14 @@ class ModelTemplate(metaclass=ABCMeta):
 
     def build_loss(self):
         # trainable variables number
+        # weight_decay
+        with tf.name_scope("weight_decay"):
+            for var in set(tf.get_collection('reg_vars', self.scope)):
+                weight_decay = tf.multiply(tf.nn.l2_loss(var), cfg.wd,
+                                           name="{}-wd".format('-'.join(str(var.op.name).split('/'))))
+                tf.add_to_collection('losses', weight_decay)
+        reg_vars = tf.get_collection('losses', self.scope)
+        _logger.add('regularization var num: %d' % len(reg_vars))
         trainable_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope)
         _logger.add('trainable var num: %d' % len(trainable_vars))
 
@@ -152,7 +160,7 @@ class ModelTemplate(metaclass=ABCMeta):
         return feed_dict
 
     def step(self, sess, batch_samples, get_summary=False):
-        assert isinstance(sess, tf.Session)
+        # assert isinstance(sess, tf.Session)
         feed_dict = self.get_feed_dict(batch_samples, 'train')
         cfg.time_counter.add_start()
         if get_summary:

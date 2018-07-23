@@ -16,9 +16,9 @@ class Configs(object):
         parser.add_argument('--debug', type='bool', default=False, help='whether run as debug mode')
         parser.add_argument('--mode', type=str, default='train', help='train, dev or test')
         parser.add_argument('--network_type', type=str, default='test', help='network type')
-        parser.add_argument('--log_period', type=int, default=500, help='save tf summary period')  ###  change for running
-        parser.add_argument('--save_period', type=int, default=3000, help='abandoned')
-        parser.add_argument('--eval_period', type=int, default=1000, help='evaluation period')  ###  change for running
+        parser.add_argument('--log_period', type=int, default=100, help='save tf summary period')  ###  change for running
+        parser.add_argument('--save_period', type=int, default=100, help='abandoned')
+        parser.add_argument('--eval_period', type=int, default=100, help='evaluation period')  ###  change for running
         parser.add_argument('--gpu', type=int, default=3, help='employed gpu index')
         parser.add_argument('--gpu_mem', type=float, default=0.96, help='gpu memory ratio to employ')
         parser.add_argument('--model_dir_suffix', type=str, default='', help='model folder name suffix')
@@ -27,10 +27,10 @@ class Configs(object):
 
         # @ ----------training ------
         parser.add_argument('--max_epoch', type=int, default=200, help='max epoch number')
-        parser.add_argument('--train_batch_size', type=int, default=64, help='Train Batch Size')
-        parser.add_argument('--test_batch_size', type=int, default=128, help='Test Batch Size')
-        parser.add_argument('--optimizer', type=str, default='adadelta', help='choose an optimizer[adadelta|adam]')
-        parser.add_argument('--learning_rate', type=float, default=0.5, help='Init Learning rate')
+        parser.add_argument('--train_batch_size', type=int, default=50, help='Train Batch Size')
+        parser.add_argument('--test_batch_size', type=int, default=100, help='Test Batch Size')
+        parser.add_argument('--optimizer', type=str, default='adam', help='choose an optimizer[adadelta|adam]')
+        parser.add_argument('--learning_rate', type=float, default=0.001, help='Init Learning rate')
 
 
         # @ ----- Text Processing ----
@@ -40,17 +40,17 @@ class Configs(object):
         parser.add_argument('--glove_corpus', type=str, default='6B', help='choose glove corpus to employ')
         parser.add_argument('--use_glove_unk_token', type='bool', default=True, help='')
         parser.add_argument('--lower_word', type='bool', default=True, help='')
-        parser.add_argument('--out_channel_dims', type=str, default='50,50,50', help='out channel dims')
-        parser.add_argument('--filter_heights', type=str, default='1,3,5', help='filter heights')
+        parser.add_argument('--out_channel_dims', type=str, default='100,100,100', help='out channel dims')
+        parser.add_argument('--filter_heights', type=str, default='3,4,5', help='filter heights')
         parser.add_argument('--fine_tune', type='bool', default=False, help='fine tune extra embedding mat')
 
 
         # @ ------neural network-----
-        parser.add_argument('--dropout', type=float, default=0.7, help='dropout keep prob')
+        parser.add_argument('--dropout', type=float, default=0.5, help='dropout keep prob')
         parser.add_argument('--hidden_units_num', type=int, default=300, help='Hidden units number of Neural Network')
 
         # @ ------task-----
-        parser.add_argument('--output_class', type=int, default=5, help='output class')
+        parser.add_argument('--output_class', type=int, default=2, help='output class')
 
         parser.set_defaults(shuffle=True)
         self.args = parser.parse_args()

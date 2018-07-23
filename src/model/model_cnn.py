@@ -29,16 +29,14 @@ class ModelCNN(ModelTemplate):
             self.tensor_dict['emb'] = emb
 
         with tf.variable_scope('cnn'):
-            sent_rep = cnn_Kim(emb, filter_size=3, scope='cnn_Kim', keep_prob=cfg.dropout,
+            sent_rep = cnn_Kim(emb, filter_height = self.fh, out_channel_dims=self.ocd, scope='cnn_Kim', keep_prob=cfg.dropout,
                                is_train=self.is_train,activation='relu', tensor_dict=self.tensor_dict, name='')
             self.tensor_dict['sent_rep'] = sent_rep
 
         with tf.variable_scope('output'):
-            pre_output = tf.nn.relu(linear([sent_rep], hn, True, 0., scope='pre_output', squeeze=False,
-                                           input_keep_prob=cfg.dropout, is_train=self.is_train))
-            logits = linear([pre_output], self.output_class, True, 0., scope='logits', squeeze=False,
-                            input_keep_prob=cfg.dropout, is_train=self.is_train)
-            self.tensor_dict['logits'] = logits
+            logits = tf.nn.relu(linear([sent_rep], self.output_class, True, scope='pre_logits_linear',
+                                          input_keep_prob=cfg.dropout,
+                                          is_train=self.is_train))  # bs, hn
 
         return logits
 
