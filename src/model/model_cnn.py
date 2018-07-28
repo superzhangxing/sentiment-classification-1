@@ -37,7 +37,8 @@ class ModelCNN(ModelTemplate):
             logits = tf.nn.relu(linear([sent_rep], self.output_class, True, scope='pre_logits_linear',
                                           input_keep_prob=cfg.dropout,
                                           is_train=self.is_train))  # bs, hn
-
+            # sent_rep = tf.cond(self.is_train, lambda: tf.nn.dropout(sent_rep, cfg.dropout), lambda: sent_rep)
+            # logits = tf.layers.dense(sent_rep, self.output_class, tf.nn.relu)
         return logits
 
 

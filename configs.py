@@ -30,7 +30,7 @@ class Configs(object):
         parser.add_argument('--train_batch_size', type=int, default=50, help='Train Batch Size')
         parser.add_argument('--test_batch_size', type=int, default=100, help='Test Batch Size')
         parser.add_argument('--optimizer', type=str, default='adam', help='choose an optimizer[adadelta|adam]')
-        parser.add_argument('--learning_rate', type=float, default=0.001, help='Init Learning rate')
+        parser.add_argument('--learning_rate', type=float, default=0.0001, help='Init Learning rate')
 
 
         # @ ----- Text Processing ----

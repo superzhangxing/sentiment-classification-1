@@ -24,8 +24,8 @@ def cnn(rep_tensor, filter_size, out_channel_dim, scope = None, keep_prob = 1., 
         inputs = tf.expand_dims(rep_tensor, axis=-1)
         filter_shape = [filter_size, cfg.word_embedding_length, 1, out_channel_dim]
         w = tf.get_variable(name='conv_w', dtype = tf.float32,
-                            initializer=tf.random_uniform(shape=filter_shape, minval=0., maxval=0.1))
-        b = tf.get_variable(name='conv_b', dtype=tf.float32, initializer=tf.zeros([out_channel_dim]))
+                            initializer=tf.truncated_normal(filter_shape, stddev=0.1))
+        b = tf.get_variable(name='conv_b', dtype=tf.float32, initializer=tf.constant(0.1, shape = [out_channel_dim]))
         conv = tf.nn.conv2d(inputs, filter=w, strides=[1,1,1,1], padding='VALID', name='conv')
         output = tf.nn.bias_add(conv, b)
 

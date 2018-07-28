@@ -7,7 +7,7 @@ def _linear(xs,output_size,bias,bias_start=0., scope=None):
         x = tf.concat(xs,-1)
         input_size = x.get_shape()[-1]
         W = tf.get_variable('W', shape=[input_size,output_size],dtype=tf.float32,
-                            )
+                            initializer=tf.random_uniform_initializer())
         if bias:
             bias = tf.get_variable('bias', shape=[output_size],dtype=tf.float32,
                                    initializer=tf.constant_initializer(bias_start))
@@ -34,4 +34,18 @@ def linear(args, output_size, bias, bias_start=0.0, scope=None, squeeze=False, w
     if squeeze:
         out = tf.squeeze(out, [len(args[0].get_shape().as_list())-1])
 
+    if wd:
+        add_reg_without_bias()
+
+
     return out
+
+def add_reg_without_bias(scope=None):
+    scope = scope or tf.get_variable_scope().name
+    variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope)
+    counter = 0
+    for var in variables:
+        if len(var.get_shape().as_list()) <= 1: continue
+        tf.add_to_collection('reg_vars', var)
+        counter += 1
+    return counter
