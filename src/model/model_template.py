@@ -45,6 +45,7 @@ class ModelTemplate(metaclass=ABCMeta):
 
         # ---------- start ----------
         self.logits = None
+        self.l2_loss = None
         self.loss = None
         self.accuracy = None
         self.summary = None
@@ -87,38 +88,8 @@ class ModelTemplate(metaclass=ABCMeta):
         return tf.cast(correct, tf.float32)
 
     def update_tensor_add_ema_and_opt(self):
-        self.logits = self.build_network()
-        self.loss = self.build_loss()
-        self.accuracy = self.build_accuracy()
+        self.build_network()
 
-        # ---------- ema ----------
-
-        self.summary = tf.summary.merge_all()
-        # ---------- optimization ----------
-        if cfg.optimizer.lower() == 'adadelta':
-            # assert cfg.learning_rate > 0.1 and cfg.learning_rate < 1.
-            self.opt = tf.train.AdadeltaOptimizer(cfg.learning_rate)
-        elif cfg.optimizer.lower() == 'adam':
-            # assert cfg.learning_rate < 0.1
-            self.opt = tf.train.AdamOptimizer(cfg.learning_rate)
-        elif cfg.optimizer.lower() == 'rmsprop':
-            # assert cfg.learning_rate < 0.1
-            self.opt = tf.train.RMSPropOptimizer(cfg.learning_rate)
-        else:
-            raise AttributeError('no optimizer named as \'%s\'' % cfg.optimizer)
-
-        trainable_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope)
-        all_params_num = 0
-        for elem in trainable_vars:
-            var_name = elem.name.split(':')[0]
-            if var_name.endswith('emb_mat'): continue
-            params_num = 1
-            for l in elem.get_shape().as_list(): params_num *= l
-            all_params_num += params_num
-        _logger.add('Trainable Parameters Number: %d' % all_params_num)
-
-        self.train_op = self.opt.minimize(self.loss, self.global_step,
-                                          var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope))
 
     def get_feed_dict(self, sample_batch, data_type='train'):
         # max sentence len
