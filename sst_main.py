@@ -24,26 +24,20 @@ def train():
     loadFile = True
     ifLoad, data = False, None
     if loadFile:
-        ifLoad, data = load_file(cfg.processed_path, 'processed data', 'pickle')
+        ifLoad, data = load_file(cfg.processed_path, 'data', 'pickle')
     if not ifLoad or not loadFile:
-        train_data_obj = Dataset(cfg.train_data_path, 'train')
-        dev_data_obj = Dataset(cfg.dev_data_path, 'dev', train_data_obj.dicts)
-        test_data_obj = Dataset(cfg.test_data_path, 'test', train_data_obj.dicts)
-
-        save_file({'train_data_obj': train_data_obj, 'dev_data_obj': dev_data_obj, 'test_data_obj': test_data_obj},
-                  cfg.processed_path)
-        train_data_obj.save_dict(cfg.dict_path)
+        data_object = Dataset(cfg.train_data_path, cfg.dev_data_path)
+        data_object.save_dict(cfg.dict_path)
+        save_file({'data_obj': data_object},cfg.processed_path)
     else:
-        train_data_obj = data['train_data_obj']
-        dev_data_obj = data['dev_data_obj']
-        test_data_obj = data['test_data_obj']
+        data_object = data['data_obj']
 
-    emb_mat_token, emb_mat_glove = train_data_obj.emb_mat_token, train_data_obj.emb_mat_glove
+    emb_mat_token, emb_mat_glove = data_object.emb_mat_token, data_object.emb_mat_glove
 
     with tf.variable_scope(network_type) as scope:
         if network_type in model_set:
-            model = Model(emb_mat_token, emb_mat_glove, len(train_data_obj.dicts['token']),
-                          len(train_data_obj.dicts['char']), train_data_obj.max_lens['token'], scope.name)
+            model = Model(emb_mat_token, emb_mat_glove, len(data_object.dicts['token']),
+                          len(data_object.dicts['char']), data_object.max_lens['token'], scope.name)
 
     graphHandler = GraphHandler(model)
     evaluator = Evaluator(model)
@@ -59,7 +53,7 @@ def train():
     graphHandler.initialize(sess)
 
     # begin training
-    steps_per_epoch = int(math.ceil(1.0 * train_data_obj.sample_num / cfg.train_batch_size))
+    steps_per_epoch = int(math.ceil(1.0 * len(data_object.digitized_train_data_list) / cfg.train_batch_size))
     num_steps = steps_per_epoch * cfg.max_epoch or cfg.num_steps
 
     global_step = 0
@@ -67,7 +61,7 @@ def train():
     if cfg.debug:
         sess = tf_debug.LocalCLIDebugWrapperSession(sess)
 
-    for sample_batch, batch_num, data_round, idx_b in train_data_obj.generate_batch_sample_iter(num_steps):
+    for sample_batch, batch_num, data_round, idx_b in Dataset.generate_batch_sample_iter(data_object.digitized_train_data_list,num_steps):
         global_step = sess.run(model.global_step) + 1
         if_get_summary = global_step % (cfg.log_period or steps_per_epoch) == 0
         loss, summary, train_op = model.step(sess, sample_batch, get_summary=if_get_summary)
@@ -83,15 +77,16 @@ def train():
         if global_step % (cfg.eval_period or steps_per_epoch) == 0:
             # ---- dev ----
             dev_loss, dev_accu = evaluator.get_evaluation(
-                sess, dev_data_obj, global_step
+                sess, data_object.digitized_dev_data_list,'dev', global_step
             )
             _logger.add('==> for dev, loss: %.4f, accuracy: %.4f' %
                         (dev_loss, dev_accu))
             # ---- test ----
-            test_loss, test_accu = evaluator.get_evaluation(
-                sess, test_data_obj, global_step
-            )
-            _logger.add('~~> for test, loss: %.4f, accuracy: %.4f' %
+            if cfg.test_data_name != None:
+                test_loss, test_accu = evaluator.get_evaluation(
+                    sess, data_object.digitized_test_data_list,'test', global_step
+                )
+                _logger.add('~~> for test, loss: %.4f, accuracy: %.4f' %
                         (test_loss, test_accu))
 
             is_in_top, deleted_step = performRecoder.update_top_list(global_step, dev_accu, sess)

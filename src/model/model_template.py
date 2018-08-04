@@ -18,6 +18,8 @@ class ModelTemplate(metaclass=ABCMeta):
         self.gold_label = tf.placeholder(tf.int32, [None], name='gold_label') # bs
         self.is_train = tf.placeholder(tf.bool, [], name='is_train')
 
+        self.lr = tf.placeholder(tf.float32, [], name='learning_rate')
+        self.lr_value = cfg.learning_rate
 
         # ---------- parameters ----------
         self.tds, self.cds = tds, cds
@@ -89,6 +91,7 @@ class ModelTemplate(metaclass=ABCMeta):
 
     def update_tensor_add_ema_and_opt(self):
         self.build_network()
+        self.summary = tf.summary.merge_all()
 
 
     def get_feed_dict(self, sample_batch, data_type='train'):
@@ -127,7 +130,8 @@ class ModelTemplate(metaclass=ABCMeta):
         feed_dict = {
             self.token_seq: token_seq_b, self.char_seq:char_seq_b,
             self.gold_label: gold_label_b,
-            self.is_train: True if data_type == 'train' else False
+            self.is_train: True if data_type == 'train' else False,
+            self.lr: self.lr_value
         }
         return feed_dict
 
@@ -142,4 +146,8 @@ class ModelTemplate(metaclass=ABCMeta):
             loss, train_op = sess.run([self.loss, self.train_op], feed_dict=feed_dict)
             summary = None
         cfg.time_counter.add_stop()
+        self.update_learning_rate()
         return loss, summary, train_op
+
+    def update_learning_rate(self):
+        self.lr_value = max(self.lr_value - 0.000001, 0.0005)

@@ -26,15 +26,15 @@ class Configs(object):
         parser.add_argument('--load_model', type=str, default=False, help='load pretrained model')
 
         # @ ----------training ------
-        parser.add_argument('--max_epoch', type=int, default=200, help='max epoch number')
-        parser.add_argument('--train_batch_size', type=int, default=50, help='Train Batch Size')
+        parser.add_argument('--max_epoch', type=int, default=100, help='max epoch number')
+        parser.add_argument('--train_batch_size', type=int, default=64, help='Train Batch Size')
         parser.add_argument('--test_batch_size', type=int, default=100, help='Test Batch Size')
         parser.add_argument('--optimizer', type=str, default='adam', help='choose an optimizer[adadelta|adam]')
-        parser.add_argument('--learning_rate', type=float, default=0.0001, help='Init Learning rate')
-
+        parser.add_argument('--learning_rate', type=float, default=0.001, help='Init Learning rate')
+        parser.add_argument('--wd', type=float, default=0.2, help='default wd')
 
         # @ ----- Text Processing ----
-        parser.add_argument('--word_embedding_length', type=int, default=300, help='word embedding length')
+        parser.add_argument('--word_embedding_length', type=int, default=200, help='word embedding length')
         parser.add_argument('--char_embedding_length', type=int, default=300, help='char embedding length')
         parser.add_argument('--char_out_size', type=int, default=20, help='char out size')
         parser.add_argument('--glove_corpus', type=str, default='6B', help='choose glove corpus to employ')
@@ -63,7 +63,7 @@ class Configs(object):
         # ------- name --------
         self.train_data_name = 'train.json'
         self.dev_data_name = 'dev.json'
-        self.test_data_name = 'test.json'
+        self.test_data_name = None
         self.infer_train_data_name = 'train'
         self.infer_dev_data_name = 'dev'
         self.infer_test_data_name = 'test'
@@ -79,7 +79,7 @@ class Configs(object):
 
 
         # ---------- dir -------------
-        self.data_dir = join(self.dataset_dir, 'sst')
+        self.data_dir = join(self.dataset_dir, 'MR')
         self.glove_dir = join(self.dataset_dir, 'glove')
         self.result_dir = self.mkdir(self.project_dir, 'result')
         self.standby_log_dir = self.mkdir(self.result_dir, 'log')
@@ -97,7 +97,8 @@ class Configs(object):
         # -------- path --------
         self.train_data_path = join(self.data_dir, self.train_data_name)
         self.dev_data_path = join(self.data_dir, self.dev_data_name)
-        self.test_data_path = join(self.data_dir, self.test_data_name)
+        if self.test_data_name != None:
+            self.test_data_path = join(self.data_dir, self.test_data_name)
         self.infer_train_data_path = join(self.infer_dir, self.infer_train_data_name)
         self.infer_dev_data_path = join(self.infer_dir, self.infer_dev_data_name)
         self.infer_test_data_path = join(self.infer_dir, self.infer_test_data_name)

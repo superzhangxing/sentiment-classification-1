@@ -20,12 +20,18 @@ class ModelCNN(ModelTemplate):
         tel, cel, cos, ocd, fh = self.tel, self.cel, self.cos, self.ocd, self.fh
         hn = self.hn
         bs, sl = self.bs, self.sl
+        self.l2_loss = tf.constant(0.0)
 
         with tf.name_scope("embedding"):
-            self.W = tf.Variable(
-                tf.random_uniform([self.token_emb_mat.shape[0], self.token_emb_mat.shape[1]], -1.0, 1.0),
-                name = 'W'
-            )
+            # self.W = tf.Variable(
+            #     tf.random_uniform([self.token_emb_mat.shape[0], self.token_emb_mat.shape[1]], -1.0, 1.0),
+            #     name = 'W'
+            # )
+            # self.W = tf.Variable(
+            #     initial_value=self.token_emb_mat,
+            #     name = 'W'
+            # )
+            self.W = tf.constant(self.token_emb_mat)
             self.embedded_chars = tf.nn.embedding_lookup(self.W, self.token_seq)
             self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
 
@@ -62,17 +68,17 @@ class ModelCNN(ModelTemplate):
             with tf.name_scope("output"):
                 W = tf.get_variable(
                     "W",
-                    shape=[num_filters_total, self.output_class],
+                    shape=[300, self.output_class],
                     initializer=tf.contrib.layers.xavier_initializer())
                 b = tf.Variable(tf.constant(0.1, shape=[self.output_class]), name="b")
                 self.l2_loss += tf.nn.l2_loss(W)
                 self.l2_loss += tf.nn.l2_loss(b)
                 self.logits = tf.nn.xw_plus_b(self.h_drop, W, b, name="logits")
-                self.predictions = tf.argmax(self.logtis, 1, name="predictions")
+                self.predictions = tf.argmax(self.logits, 1, name="predictions")
 
             # Calculate mean cross-entropy loss
             with tf.name_scope("loss"):
-                losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logtis, labels=self.gold_label)
+                losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits, labels=self.gold_label)
                 self.loss = tf.reduce_mean(losses) + cfg.wd * self.l2_loss
                 tf.summary.scalar('loss', self.loss)
 
@@ -82,9 +88,9 @@ class ModelCNN(ModelTemplate):
                 self.accuracy = tf.cast(correct_predictions, "float")
 
             # optimizer
-            optimizer = tf.train.AdamOptimizer(1e-3)
+            optimizer = tf.train.AdamOptimizer(self.lr)
             grads_and_vars = optimizer.compute_gradients(self.loss)
-            train_op = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
+            self.train_op = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
 
         # with tf.variable_scope('emb'):
         #     token_emb_mat = generate_embedding_mat(tds, tel, init_mat=self.token_emb_mat,

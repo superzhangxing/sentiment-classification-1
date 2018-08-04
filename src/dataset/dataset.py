@@ -12,29 +12,28 @@ from abc import abstractmethod
 
 
 class Dataset(object):
-    def __init__(self, data_file_path, data_type, dicts = None):
-        self.data_type = data_type
-        _logger.add('building data set object for %s' % data_type)
-        assert data_type in ['train', 'dev', 'test']
-        # check
-        if data_type in ['dev', 'test']:
-            assert dicts is not None
+    def __init__(self, train_file_path, dev_file_path = None, test_file_path=None):
+        _logger.add('building data set object')
 
-        data_list = self.load_data(data_file_path, data_type)
+        train_data_list = self.load_data(train_file_path, 'train')
+        dev_data_list = self.load_data(dev_file_path, 'dev')
+        if test_file_path != None:
+            test_data_list = self.load_data(test_file_path, 'test')
 
-        if data_type == 'train':
-            self.dicts, self.max_lens = self.count_data_and_build_dict(data_list)
-        else:
-            _,self.max_lens = self.count_data_and_build_dict(data_list, False)
-            self.dicts = dicts
+        data_list = []
+        data_list.extend(train_data_list)
+        data_list.extend(dev_data_list)
+        if test_file_path != None:
+            data_list.extend(test_data_list)
 
-        digitized_data_list = self.digitize_dataset(data_list, self.dicts, self.data_type)
-        self.nn_data = digitized_data_list
-        self.sample_num = len(self.nn_data)
+        self.dicts, self.max_lens = self.count_data_and_build_dict(data_list)
 
-        self.emb_mat_token, self.emb_mat_glove = None, None
-        if data_type == 'train':
-            self.emb_mat_token, self.emb_mat_glove = self.generate_index2vec_matrix()
+        self.digitized_train_data_list = self.digitize_dataset(train_data_list, self.dicts)
+        self.digitized_dev_data_list = self.digitize_dataset(dev_data_list, self.dicts)
+        if test_file_path != None:
+            self.digitized_test_data_list = self.digitize_dataset(test_data_list, self.dicts)
+
+        self.emb_mat_token, self.emb_mat_glove = self.generate_index2vec_matrix()
 
 
     def save_dict(self, path):
@@ -108,13 +107,11 @@ class Dataset(object):
             token_set = add_ept_and_unk(token_set)
             char_set = add_ept_and_unk(char_set)
             dicts = {'token': token_set, 'char': char_set, 'glove': glove_token_set}
-        else:
-            dicts = {}
-        _logger.done()
+
         return dicts, {'sent': max_sent_len, 'token': max_token_len}
 
 
-    def digitize_dataset(self, data_list, dicts, data_type):
+    def digitize_dataset(self, data_list, dicts):
         token2index = dict([(token, idx) for idx, token in enumerate(dicts['token']+dicts['glove'])])
         char2index = dict([(char, idx) for idx, char in enumerate(dicts['char'])])
 
@@ -132,7 +129,7 @@ class Dataset(object):
                 return 1
 
         _logger.add()
-        _logger.add('digitizing data: %s...' % data_type)
+        _logger.add('digitizing data' )
         for sample in tqdm(data_list):
             sample['sentence_token_digital'] = [digitize_token(token) for token in sample['sentence_token']]
             sample['sentence_char_digital'] = [[digitize_char(char) for char in list(token)]
@@ -171,7 +168,8 @@ class Dataset(object):
         _logger.add('Done')
         return mat_token, mat_glove
 
-    def generate_batch_sample_iter(self, max_step=None):
+    @staticmethod
+    def generate_batch_sample_iter(digitalized_data = None, max_step=None):
         if max_step is not None:
             batch_size = cfg.train_batch_size
 
@@ -200,15 +198,15 @@ class Dataset(object):
                         step += 1
                     if step >= max_step:
                         break
-            batch_num = math.ceil(len(self.nn_data) / batch_size)
-            for sample_batch, data_round, idx_b in data_queue(self.nn_data, batch_size):
+            batch_num = math.ceil(len(digitalized_data) / batch_size)
+            for sample_batch, data_round, idx_b in data_queue(digitalized_data, batch_size):
                 yield sample_batch, batch_num, data_round, idx_b
         else:
             batch_size = cfg.test_batch_size
-            batch_num = math.ceil(len(self.nn_data) / batch_size)
+            batch_num = math.ceil(len(digitalized_data) / batch_size)
             idx_b = 0
             sample_batch = []
-            for sample in self.nn_data:
+            for sample in digitalized_data:
                 sample_batch.append(sample)
                 if len(sample_batch) == batch_size:
                     yield sample_batch, batch_num, 0, idx_b

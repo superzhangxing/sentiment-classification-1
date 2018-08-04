@@ -3,6 +3,7 @@ from src.utils.record_log import _logger
 import numpy as np
 import tensorflow as tf
 import os,shutil
+from src.dataset.dataset import Dataset
 
 class Evaluator(object):
     def __init__(self, model):
@@ -14,12 +15,12 @@ class Evaluator(object):
         self.writer = tf.summary.FileWriter(cfg.summary_dir)
 
     # --- external use ---
-    def get_evaluation(self, sess, dataset_obj, global_step=None):
+    def get_evaluation(self, sess, data_list, data_type, global_step=None):
         _logger.add()
-        _logger.add('getting evaluation result for %s' % dataset_obj.data_type)
+        _logger.add('getting evaluation result')
 
         logits_list, loss_list, accu_list = [], [], []
-        for sample_batch, _, _, _ in dataset_obj.generate_batch_sample_iter():
+        for sample_batch, _, _, _ in Dataset.generate_batch_sample_iter(data_list):
             feed_dict = self.model.get_feed_dict(sample_batch, 'dev')
             logits, loss, accu = sess.run([self.model.logits,
                                            self.model.loss, self.model.accuracy], feed_dict)
@@ -33,14 +34,14 @@ class Evaluator(object):
         accu_value = np.mean(accu_array)
 
         if global_step is not None:
-            if dataset_obj.data_type == 'train':
+            if data_type == 'train':
                 summary_feed_dict = {
                     self.train_loss: loss_value,
                     self.train_accuracy: accu_value,
                 }
                 summary = sess.run(self.train_summaries, summary_feed_dict)
                 self.writer.add_summary(summary, global_step)
-            elif dataset_obj.data_type == 'dev':
+            elif data_type == 'dev':
                 summary_feed_dict = {
                     self.dev_loss: loss_value,
                     self.dev_accuracy: accu_value,
